@@ -19,12 +19,13 @@ struct main_array *create_main_array(int is_static, long int size) {
     struct main_array *created_array = malloc(sizeof(struct main_array));
     created_array->number_of_blocks = 0;
     if (is_static) {
+        printf("Using static array\n");
         created_array->array = global_array;
     } else {
         free(global_array);
         struct block *dynamic_array = calloc(size, sizeof(struct block));
         created_array->array = dynamic_array;
-        printf("Created dynamic array with size of %ld",size);
+        printf("Created dynamic array with size of %ld", size);
     }
     return created_array;
 }
