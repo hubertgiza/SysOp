@@ -118,7 +118,7 @@ int add_tmp_to_main_array(struct main_array *main_array, int is_static) {
     struct block *block = create_block(TMP);
     if (is_static) {
         int index = static_add_block_to_main_array(main_array, block);
-        return index;
+        printf("Added to block: %d\n", index);
     } else {//TODO dynamicznie
         return 0;
     }
@@ -139,7 +139,7 @@ void delete_block(struct main_array *array, long int i) {
 }
 
 void delete_line(struct main_array *array, long int i, long int j) {
-    free(array->array[i].content[j]);
+    array->array[i].content[j] = NULL;
     array->array[i].number_of_lines--;
     printf("Removed line : %ld in block: %ld\n", j, i);
 }
