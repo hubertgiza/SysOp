@@ -89,4 +89,5 @@ int main(int argc, char **argv) {
     while (curr_index < argc) {
         curr_index += take_request(main_array, argv, curr_index);
     }
+    print_blocks(main_array);
 }

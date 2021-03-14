@@ -1,10 +1,17 @@
-main: main.c library.c library.h
-	gcc -o main.c library.c -I.
-all:
-	make clean
-	make main
+static:
+	make clear
+	gcc -Wall -c library.c
+	gcc -Wall -c main.c
+	ar crs liblibrary.a library.o main.o
+	gcc -Wall main.c -o main -L. -llibrary
+dynamic:
+	make clear
+	gcc -Wall -c library.c
+	gcc -Wall -c main.c
+	gcc -Wall -shared -fPIC -o liblibrary.so library.o main.o
+	gcc main.c -Wall -o main -L. -llibrary -Wl,-rpath=`pwd`
 	rm -f *.o
-clean:
-	rm -f *.o library
+clear:
+	rm -f *.o *.a *.so main
 
 

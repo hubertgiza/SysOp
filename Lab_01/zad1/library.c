@@ -22,10 +22,9 @@ struct main_array *create_main_array(int is_static, long int size) {
         printf("Using static array\n");
         created_array->array = global_array;
     } else {
-        free(global_array);
         struct block *dynamic_array = calloc(size, sizeof(struct block));
         created_array->array = dynamic_array;
-        printf("Created dynamic array with size of %ld", size);
+        printf("Created dynamic array with size of %ld\n", size);
     }
     return created_array;
 }
@@ -108,7 +107,7 @@ int static_add_block_to_main_array(struct main_array *main_array, struct block *
     int i = 0;
     while (main_array->array[i].content != NULL) {
         i++;
-        if (i >= main_array->number_of_blocks) {
+        if (i >= 100000) {
             perror("Array is full!\n");
             break;
         }
@@ -123,9 +122,9 @@ int add_tmp_to_main_array(struct main_array *main_array, int is_static) {
     if (is_static) {
         int index = static_add_block_to_main_array(main_array, block);
         printf("Added to block: %d\n", index);
-    } else {//TODO dynamicznie
-        return 0;
+        return index;
     }
+    return -1;
 }
 
 int get_number_of_lines_in_block(int i) {
@@ -178,14 +177,3 @@ void print_blocks(struct main_array *x) {
         }
     }
 }
-
-//int main(int argc, char **argv) {
-//    struct main_array *array = create_main_array(1, 0);
-//    struct pair_of_files *files_to_merge = create_sequence_of_pairs(argc - 1, argv);
-//    for (int i = 0; i < (argc - 1) / 2; i++) {
-//        merge_pair(files_to_merge[i].a, files_to_merge[i].b);
-//        int j = add_tmp_to_main_array(array, 1);
-//    }
-//    delete_block(array, 1);
-//    print_blocks(array);
-//}
