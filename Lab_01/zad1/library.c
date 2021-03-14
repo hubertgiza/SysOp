@@ -108,6 +108,10 @@ int static_add_block_to_main_array(struct main_array *main_array, struct block *
     int i = 0;
     while (main_array->array[i].content != NULL) {
         i++;
+        if (i >= main_array->number_of_blocks) {
+            perror("Array is full!\n");
+            break;
+        }
     }
     main_array->array[i] = *x;
     main_array->number_of_blocks++;
@@ -133,12 +137,14 @@ void delete_block(struct main_array *array, long int i) {
         free(array->array[i].content[j]);
     }
     free(array->array[i].content);
+    array->array[i].content = NULL;
     array->array[i].number_of_lines = 0;
     array->number_of_blocks--;
     printf("Removed block: %ld\n", i);
 }
 
 void delete_line(struct main_array *array, long int i, long int j) {
+    free(array->array[i].content[j]);
     array->array[i].content[j] = NULL;
     array->array[i].number_of_lines--;
     printf("Removed line : %ld in block: %ld\n", j, i);
