@@ -6,6 +6,7 @@
 #define UNTITLED_LIBRARY_H
 
 #include <bits/types/FILE.h>
+#include <sys/times.h>
 
 struct main_array {
     int number_of_blocks;
@@ -22,6 +23,9 @@ struct block {
     int number_of_lines;
 };
 
+clock_t times(struct tms *buf);
+
+
 struct main_array *create_main_array(int is_static, long int size);
 
 struct pair_of_files *create_sequence_of_pairs(int argc, char **argv);
@@ -32,9 +36,9 @@ void merge_pair(struct main_array *main_array, const char *a, const char *b);
 
 struct block *create_block(const char *file, int number_of_iterations, char **pointers_1, char **pointers_2);
 
-int static_add_block_to_main_array(struct main_array *main_array, struct block *x);
+void static_add_block_to_main_array(struct main_array *main_array, struct block *x);
 
-int add_tmp_to_main_array(struct main_array *main_array, struct block *block);
+void add_tmp_to_main_array(struct main_array *main_array, struct block *block);
 
 int get_number_of_lines_in_block(int i);
 

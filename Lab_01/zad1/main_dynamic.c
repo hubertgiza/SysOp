@@ -6,6 +6,7 @@
 #include <sys/times.h>
 #include <time.h>
 #include <zconf.h>
+#include <dlfcn.h>
 
 #define REMOVE_BLOCK "remove_block"
 #define MERGE_FILES "merge_files"
@@ -17,6 +18,15 @@ double calculate_time(clock_t start, clock_t end) {
 }
 
 int take_request(struct main_array *array, char **argv, int curr_index) {
+    void *handle = dlopen("./library.so", RTLD_NOW);
+    if (!handle) {
+        printf("!!! %s\n", dlerror());
+        exit(1);
+    }
+    void (*delete_block)(struct main_array *, int) = dlsym(handle, "delete_block");
+    void (*delete_line)(struct main_array *, int, int) =  dlsym(handle, "delete_line");
+    void (*merge_pair)(struct main_array *, char *, char *) = dlsym(handle, "merge_pair");
+    struct pair_of_files *(*create_sequence_of_pairs)(int, char **) = dlsym(handle, "create_sequence_of_pairs");
     char *curr_value = argv[curr_index];
     int arguments_taken = 0;
     if (strcmp(curr_value, REMOVE_BLOCK) == 0) {
@@ -87,7 +97,12 @@ int main(int argc, char **argv) {
     struct main_array *main_array;
     struct tms **tms_time = malloc(5 * sizeof(struct tms *));
     clock_t real_time[5];
-
+    void *handle = dlopen("./library.so", RTLD_NOW);
+    if (!handle) {
+        printf("!!! %s\n", dlerror());
+        exit(1);
+    }
+    struct main_array *(*create_main_array)(int, int) = dlsym(handle, "create_main_array");
     double r_c = 0.0, u_c = 0.0, s_c = 0.0, r_m = 0.0, u_m = 0.0, s_m = 0.0, r_rb = 0.0, u_rb = 0.0, s_rb = 0.0, r_rl = 0.0, u_rl = 0.0, s_rl = 0.0;
 
     for (int i = 0; i < 5; i++) {

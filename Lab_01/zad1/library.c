@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 struct block global_array[100000];
 const int LINE_LENGTH = 1000;
 const char *TMP = "tmp.txt";
@@ -19,12 +20,12 @@ struct main_array *create_main_array(int is_static, long int size) {
     struct main_array *created_array = malloc(sizeof(struct main_array));
     created_array->number_of_blocks = 0;
     if (is_static) {
-        printf("Using static array\n");
+//        printf("Using static array\n");
         created_array->array = global_array;
     } else {
         struct block *dynamic_array = calloc(size, sizeof(struct block));
         created_array->array = dynamic_array;
-        printf("Created dynamic array with size of %ld\n", size);
+//        printf("Created dynamic array with size of %ld\n", size);
     }
     return created_array;
 }
@@ -56,10 +57,8 @@ int number_of_lines(FILE *file) {
     return lines;
 }
 
-int add_tmp_to_main_array(struct main_array *main_array, struct block *block) {
-    int index = static_add_block_to_main_array(main_array, block);
-    printf("Added to block: %d\n", index);
-    return index;
+void add_tmp_to_main_array(struct main_array *main_array, struct block *block) {
+    static_add_block_to_main_array(main_array, block);
 }
 
 // create block from TMP file - after merging
@@ -70,9 +69,9 @@ struct block *create_block(const char *file, int number_of_iterations, char **po
     result->number_of_lines = 2 * number_of_iterations;
 
     for (int i = 0; i < number_of_iterations; i++) {
-        array[2 * i] = calloc(strlen(pointers_1[i])+1, sizeof(char));
+        array[2 * i] = calloc(strlen(pointers_1[i]) + 1, sizeof(char));
         fgets(array[2 * i], strlen(pointers_1[i]) + 1, tmp);
-        array[2 * i + 1] = calloc(strlen(pointers_2[i])+1, sizeof(char));
+        array[2 * i + 1] = calloc(strlen(pointers_2[i]) + 1, sizeof(char));
         fgets(array[2 * i + 1], strlen(pointers_2[i]) + 1, tmp);
     }
     result->content = array;
@@ -170,7 +169,7 @@ void merge_pair(struct main_array *main_array, const char *a, const char *b) {
 }
 
 
-int static_add_block_to_main_array(struct main_array *main_array, struct block *x) {
+void static_add_block_to_main_array(struct main_array *main_array, struct block *x) {
     int i = 0;
     while (main_array->array[i].content != NULL) {
         i++;
@@ -181,7 +180,6 @@ int static_add_block_to_main_array(struct main_array *main_array, struct block *
     }
     main_array->array[i] = *x;
     main_array->number_of_blocks++;
-    return i;
 }
 
 
@@ -197,14 +195,14 @@ void delete_block(struct main_array *array, long int i) {
     array->array[i].content = NULL;
     array->array[i].number_of_lines = 0;
     array->number_of_blocks--;
-    printf("Removed block: %ld\n", i);
+//    printf("Removed block: %ld\n", i);
 }
 
 void delete_line(struct main_array *array, long int i, long int j) {
     free(array->array[i].content[j]);
     array->array[i].content[j] = NULL;
     array->array[i].number_of_lines--;
-    printf("Removed line : %ld in block: %ld\n", j, i);
+//    printf("Removed line : %ld in block: %ld\n", j, i);
 }
 
 void print_lines(struct block x) {
