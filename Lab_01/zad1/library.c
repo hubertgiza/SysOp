@@ -8,7 +8,7 @@
 
 
 struct block global_array[100000];
-const int LINE_LENGTH = 100;
+const int LINE_LENGTH = 1000;
 const char *TMP = "tmp.txt";
 
 struct main_array *create_main_array(int is_static, long int size) {
@@ -97,8 +97,8 @@ struct block *create_block(const char *file) {
             i++;
         } while (fgets(line, LINE_LENGTH, tmp) != NULL);
     }
-    fclose(tmp);
     free(line);
+    fclose(tmp);
     result->content = block;
     return result;
 }
