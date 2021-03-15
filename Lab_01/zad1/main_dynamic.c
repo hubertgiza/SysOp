@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
     struct main_array *main_array;
     struct tms **tms_time = malloc(5 * sizeof(struct tms *));
     clock_t real_time[5];
+    const int n_test = 50;
     void *handle = dlopen("./library.so", RTLD_NOW);
     if (!handle) {
         printf("!!! %s\n", dlerror());
@@ -109,7 +110,7 @@ int main(int argc, char **argv) {
         tms_time[i] = (struct tms *) malloc(sizeof(struct tms *));
     }
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < n_test; i++) {
         int curr_index;
         real_time[0] = times(tms_time[0]);
         if (strcmp(argv[1], CREATE_TABLE) == 0) {
@@ -140,18 +141,18 @@ int main(int argc, char **argv) {
         u_rl += calculate_time(tms_time[3]->tms_utime, tms_time[4]->tms_utime);
         s_rl += calculate_time(tms_time[3]->tms_stime, tms_time[4]->tms_stime);
     }
-    r_c /= 10.0;
-    u_c /= 10.0;
-    s_c /= 10.0;
-    r_m /= 10.0;
-    u_m /= 10.0;
-    s_m /= 10.0;
-    r_rb /= 10.0;
-    u_rb /= 10.0;
-    s_rb /= 10.0;
-    r_rl /= 10.0;
-    u_rl /= 10.0;
-    s_rl /= 10.0;
+    r_c /= n_test;
+    u_c /= n_test;
+    s_c /= n_test;
+    r_m /= n_test;
+    u_m /= n_test;
+    s_m /= n_test;
+    r_rb /= n_test;
+    u_rb /= n_test;
+    s_rb /= n_test;
+    r_rl /= n_test;
+    u_rl /= n_test;
+    s_rl /= n_test;
     printf("             Real         User        System\n");
     printf("arr        ");
     printf("%lf     %lf     %lf\n", r_c, u_c, s_c);

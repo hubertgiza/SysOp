@@ -1,0 +1,13 @@
+Kompilacja z biblioteką statyczną:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.307800     0.151800     0.061800
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką wsþółdzieloną
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.277400     0.156800     0.056400
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000

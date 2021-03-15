@@ -1,0 +1,25 @@
+Kompilacja z biblioteką statyczną:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.283200     0.150800     0.061000
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000200     0.000000
+
+Kompilacja z biblioteką współdzieloną:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.276200     0.153600     0.060200
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką dynamiczną:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.255600     0.153400     0.058200
+rm block   0.000000     0.000200     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Z wyników można zauważyć tendencję do poprawiana się wyników z każdą następną badaną biblioteką.
+Są to natomiast nic nieznaczące różnice, z których nie można formułować żadnych konkretnych wniosków.
+Funkcje tworzenia i usuwania z tablicy są bardzo szybkie, więc w warunkach domowo-labolatoryjnych trudno zauważyć, by
+któraś z nich zajmowała znaczący ułamek sekundy.

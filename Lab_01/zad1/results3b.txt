@@ -1,0 +1,68 @@
+Na podstawie poniższych wyników, jestem w stanie zauważyć, ze kompilacja z różnymi poziomami kompilacji ma realny wpływ
+na długość rzeczywistego czasu działania programu. Kolumna z wartościami "Real" znacząco różni się z wynikami prezentowanymi
+w plikach z zadań poprzednich. Widać także przeskos między poziomami O1 i O2. Poziom O1 jest wolniejszy o około 20% ( w kolumnie "Real"),
+co jest bardzo znaczącą różnicą. W kolumnie "User" poziomu optymalizacji O1 nie widać różnicy w czasach w porównaniu do
+poprzednich zadań.
+
+Kompilacja z biblioteką statyczną, poziom optymalizacji O1:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.201200     0.138200     0.058800
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką statyczną, poziom optymalizacji O2:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.161200     0.060600     0.057600
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000200
+
+Kompilacja z biblioteką statyczną, poziom optymalizacji O3:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.158000     0.059000     0.057600
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką współdzieloną, poziom optymalizacji O1:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.200600     0.142400     0.055800
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką współdzieloną, poziom optymalizacji O2:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.159600     0.059200     0.058400
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką współdzieloną, poziom optymalizacji O3:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.159600     0.061200     0.057200
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką dynamiczną, poziom optymalizacji O1:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.201200     0.141200     0.057400
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką dynamiczną, poziom optymalizacji O2:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.159200     0.060400     0.058200
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
+
+Kompilacja z biblioteką dynamiczną, poziom optymalizacji O3:
+             Real         User        System
+arr        0.000000     0.000000     0.000000
+merge      0.158600     0.058200     0.059400
+rm block   0.000000     0.000000     0.000000
+rm line    0.000000     0.000000     0.000000
