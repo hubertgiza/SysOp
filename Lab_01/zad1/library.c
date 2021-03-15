@@ -70,12 +70,10 @@ struct block *create_block(const char *file, int number_of_iterations, char **po
     result->number_of_lines = 2 * number_of_iterations;
 
     for (int i = 0; i < number_of_iterations; i++) {
-        char *line = calloc(strlen(pointers_1[i]), sizeof(char));
-        fgets(line, strlen(pointers_1[i]) + 1, tmp);
-        array[2 * i] = line;
-        char *line2 = calloc(strlen(pointers_2[i]), sizeof(char));
-        fgets(line2, strlen(pointers_2[i]) + 1, tmp);
-        array[2 * i + 1] = line2;
+        array[2 * i] = calloc(strlen(pointers_1[i])+1, sizeof(char));
+        fgets(array[2 * i], strlen(pointers_1[i]) + 1, tmp);
+        array[2 * i + 1] = calloc(strlen(pointers_2[i])+1, sizeof(char));
+        fgets(array[2 * i + 1], strlen(pointers_2[i]) + 1, tmp);
     }
     result->content = array;
     return result;

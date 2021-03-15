@@ -57,6 +57,10 @@ int take_request(struct main_array *array, char **argv, int curr_index) {
                 } else break;
             } else break;
         } while (1);
+        if (number_of_files % 2 == 1) {
+            perror("Provide even number of files to merge");
+            exit(1);
+        }
         files_to_merge = calloc(number_of_files, sizeof(char *));
         while (arguments_taken <= number_of_files) {
             files_to_merge[arguments_taken - 1] = argv[curr_index + arguments_taken];
@@ -71,6 +75,7 @@ int take_request(struct main_array *array, char **argv, int curr_index) {
         return arguments_taken;
     } else {
         perror("Expected instruction, got value, probably\n");
+        exit(1);
         return 0;
     }
 }
@@ -88,5 +93,5 @@ int main(int argc, char **argv) {
     while (curr_index < argc) {
         curr_index += take_request(main_array, argv, curr_index);
     }
-    print_blocks(main_array);
+//    print_blocks(main_array);
 }
