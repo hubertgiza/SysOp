@@ -5,7 +5,7 @@
 #include "library.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 struct block global_array[100000];
 const int LINE_LENGTH = 1000;
@@ -56,52 +56,121 @@ int number_of_lines(FILE *file) {
     return lines;
 }
 
-void merge_pair(const char *a, const char *b) {
-    const char *FILENAME = "tmp.txt";
+int add_tmp_to_main_array(struct main_array *main_array, struct block *block) {
+    int index = static_add_block_to_main_array(main_array, block);
+    printf("Added to block: %d\n", index);
+    return index;
+}
 
+// create block from TMP file - after merging
+struct block *create_block(const char *file, int number_of_iterations, char **pointers_1, char **pointers_2) {
+    FILE *tmp = fopen(file, "r");
+    struct block *result = malloc(sizeof(struct block));
+    char **array = calloc(number_of_iterations * 2, sizeof(char *));
+    result->number_of_lines = 2 * number_of_iterations;
+
+    for (int i = 0; i < number_of_iterations; i++) {
+        char *line = calloc(strlen(pointers_1[i]), sizeof(char));
+        fgets(line, strlen(pointers_1[i]) + 1, tmp);
+        array[2 * i] = line;
+        char *line2 = calloc(strlen(pointers_2[i]), sizeof(char));
+        fgets(line2, strlen(pointers_2[i]) + 1, tmp);
+        array[2 * i + 1] = line2;
+    }
+    result->content = array;
+    return result;
+}
+
+void merge_pair(struct main_array *main_array, const char *a, const char *b) {
+    const char *FILENAME = "tmp.txt";
 
     FILE *file_1 = fopen(a, "r");
     FILE *file_2 = fopen(b, "r");
     FILE *tmp = fopen(FILENAME, "w");
 
-    char line_1[LINE_LENGTH];
-    char line_2[LINE_LENGTH];
+    fseek(file_1, 0, SEEK_END);
+    long fsize_1 = ftell(file_1);
+    fseek(file_1, 0, SEEK_SET);
 
-    while ((fgets(line_1, LINE_LENGTH, file_1) != NULL) && (fgets(line_2, LINE_LENGTH, file_2) != NULL)) {
-        fputs(line_1, tmp);
-        fputs(line_2, tmp);
-    }
-
+    char *content_1 = malloc(fsize_1 + 1);
+    fread(content_1, 1, fsize_1, file_1);
     fclose(file_1);
+
+    fseek(file_2, 0, SEEK_END);
+    long fsize_2 = ftell(file_2);
+    fseek(file_2, 0, SEEK_SET);
+
+    char *content_2 = malloc(fsize_2 + 1);
+    fread(content_2, 1, fsize_2, file_2);
     fclose(file_2);
-    fclose(tmp);
-}
 
-// create block from TMP file - after merging
-struct block *create_block(const char *file) {
-    struct block *result = malloc(sizeof(struct block));
-    int len = number_of_lines(fopen(file, "r"));
-    result->number_of_lines = len - 1;
+    content_1[fsize_1] = '\0';
+    content_2[fsize_2] = '\0';
 
-    FILE *tmp = fopen(file, "r");
-    char **block = calloc(len, sizeof(char *));
-    int i = 0;
-    char *line = calloc(LINE_LENGTH, sizeof(char));
-
-    if (fgets(line, LINE_LENGTH, tmp) == NULL) {
-        perror("bad file is given");
-    } else {
-        do {
-            block[i] = line;
-            line = calloc(LINE_LENGTH, sizeof(char));
-            i++;
-        } while (fgets(line, LINE_LENGTH, tmp) != NULL);
+    int number_of_lines_1 = 1;
+    int number_of_lines_2 = 1;
+    for (int i = 0; i < fsize_1; i++) {
+        if (content_1[i] == '\n') {
+            number_of_lines_1++;
+            content_1[i] = '\0';
+        }
     }
-    free(line);
+    for (int i = 0; i < fsize_2; i++) {
+        if (content_2[i] == '\n') {
+            number_of_lines_2++;
+            content_2[i] = '\0';
+        }
+    }
+
+    char **pointers_1 = calloc(number_of_lines_1, sizeof(char *));
+    char **pointers_2 = calloc(number_of_lines_2, sizeof(char *));
+
+    int i = 1;
+    int j = 0;
+    int step = 0;
+    pointers_1[0] = content_1;
+    while (i < number_of_lines_1 && j < fsize_1 + 1) {
+        step = strlen(pointers_1[i - 1]);
+        j += step + 1;
+        pointers_1[i] = &content_1[j];
+        i++;
+    }
+    i = 1;
+    j = 0;
+    step = 0;
+    pointers_2[0] = content_2;
+    while (i < number_of_lines_2 && j < fsize_2 + 1) {
+        step = strlen(pointers_2[i - 1]);
+        j += step + 1;
+        pointers_2[i] = &content_2[j];
+        i++;
+    }
+
+    int number_of_iterations = 0;
+    if (number_of_lines_1 > number_of_lines_2) {
+        number_of_iterations = number_of_lines_2;
+    } else {
+        number_of_iterations = number_of_lines_1;
+    }
+    for (i = 0; i < number_of_iterations - 1; i++) {
+        char *line;
+        line = pointers_1[i];
+        fputs(line, tmp);
+        line = pointers_2[i];
+        fputs(line, tmp);
+    }
     fclose(tmp);
-    result->content = block;
-    return result;
+    struct block *result = create_block(FILENAME, number_of_iterations, pointers_1, pointers_2);
+    add_tmp_to_main_array(main_array, result);
+
+    // cleaning memory
+    free(pointers_1);
+    free(pointers_2);
+    free(content_1);
+    free(content_2);
+    fclose(tmp);
 }
+
 
 int static_add_block_to_main_array(struct main_array *main_array, struct block *x) {
     int i = 0;
@@ -117,15 +186,6 @@ int static_add_block_to_main_array(struct main_array *main_array, struct block *
     return i;
 }
 
-int add_tmp_to_main_array(struct main_array *main_array, int is_static) {
-    struct block *block = create_block(TMP);
-    if (is_static) {
-        int index = static_add_block_to_main_array(main_array, block);
-        printf("Added to block: %d\n", index);
-        return index;
-    }
-    return -1;
-}
 
 int get_number_of_lines_in_block(int i) {
     return global_array[i].number_of_lines;
@@ -154,7 +214,7 @@ void print_lines(struct block x) {
     int j = 0;
     while (j < x.number_of_lines) {
         if (x.content[i] != NULL) {
-            printf("%s", x.content[i]);
+            printf("%s\n", x.content[i]);
             i++;
             j++;
         } else {

@@ -28,13 +28,13 @@ struct pair_of_files *create_sequence_of_pairs(int argc, char **argv);
 
 int number_of_lines(FILE *file);
 
-void merge_pair(const char *a, const char *b);
+void merge_pair(struct main_array *main_array, const char *a, const char *b);
 
-struct block *create_block(const char *file);
+struct block *create_block(const char *file, int number_of_iterations, char **pointers_1, char **pointers_2);
 
 int static_add_block_to_main_array(struct main_array *main_array, struct block *x);
 
-int add_tmp_to_main_array(struct main_array *main_array, int is_static);
+int add_tmp_to_main_array(struct main_array *main_array, struct block *block);
 
 int get_number_of_lines_in_block(int i);
 

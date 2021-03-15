@@ -64,8 +64,7 @@ int take_request(struct main_array *array, char **argv, int curr_index) {
         }
         sequence = create_sequence_of_pairs(number_of_files, files_to_merge);
         for (int i = 0; i < number_of_files / 2; i++) {
-            merge_pair(sequence[i].a, sequence[i].b);
-            add_tmp_to_main_array(array, 1);
+            merge_pair(array, sequence[i].a, sequence[i].b);
         }
         free(files_to_merge);
         free(sequence);
@@ -89,5 +88,5 @@ int main(int argc, char **argv) {
     while (curr_index < argc) {
         curr_index += take_request(main_array, argv, curr_index);
     }
-//    print_blocks(main_array);
+    print_blocks(main_array);
 }
