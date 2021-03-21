@@ -10,11 +10,16 @@ void print_files(FILE *file_1, FILE *file_2) {
         while ((c_1 = fgetc(file_1)) != EOF && (c_1 != '\n')) {
             printf("%c", c_1);
         }
-        printf("\n");
+        if (c_1 != EOF) {
+            printf("\n");
+        }
         while ((c_2 = fgetc(file_2)) != EOF && (c_2 != '\n')) {
             printf("%c", c_2);
         }
-        printf("\n");
+        if (c_2 != EOF) {
+            printf("\n");
+        }
+
     }
 }
 
