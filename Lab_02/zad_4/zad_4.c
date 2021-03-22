@@ -54,4 +54,7 @@ int main(int argc, char **argv) {
         fputs(swapped_line, output);
         free(swapped_line);
     }
+    fclose(input);
+    fclose(output);
+    free(line);
 }

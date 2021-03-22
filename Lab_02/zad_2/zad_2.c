@@ -5,7 +5,7 @@
 #define LENGTH 256
 
 void print_given_lines(FILE *file, char c) {
-    char *line = malloc(LENGTH * sizeof(char));
+    char *line = calloc(LENGTH * sizeof(char));
     while (fgets(line, LENGTH, file) != NULL) {
         for (int i = 0; i < LENGTH; i++) {
             if (line[i] == c) {
