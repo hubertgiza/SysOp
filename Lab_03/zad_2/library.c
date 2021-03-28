@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <regex.h>
 
 struct block global_array[100000];
 const int LINE_LENGTH = 1000;
@@ -61,6 +61,53 @@ void add_tmp_to_main_array(struct main_array *main_array, struct block *block) {
     static_add_block_to_main_array(main_array, block);
 }
 
+
+int merge_files(int curr_index, char **argv, struct main_array* array) {
+    int number_of_files = 0;
+    int arguments_taken = 0;
+    struct pair_of_files *sequence;
+    char **files_to_merge;
+    regex_t regex;
+    int val;
+    val = regcomp(&regex, "[.]txt$", 0);
+    if (val) {
+        printf("Could not compile regex\n");
+        exit(1);
+    }
+    char *line = argv[curr_index + number_of_files + 1];
+    val = regexec(&regex, line, 0, NULL, 0);
+    if (val) {
+        perror("no files to merge\n");
+    }
+    number_of_files++;
+    do {
+        if (argv[curr_index + number_of_files + 1] != NULL) {
+            line = argv[curr_index + number_of_files + 1];
+            val = regexec(&regex, line, 0, NULL, 0);
+            if (!val) {
+                number_of_files++;
+            } else break;
+        } else break;
+    } while (1);
+    if (number_of_files % 2 == 1) {
+        perror("Provide even number of files to merge");
+        exit(1);
+    }
+    files_to_merge = calloc(number_of_files, sizeof(char *));
+    while (arguments_taken <= number_of_files) {
+        files_to_merge[arguments_taken - 1] = argv[curr_index + arguments_taken];
+        arguments_taken++;
+    }
+    sequence = create_sequence_of_pairs(number_of_files, files_to_merge);
+    for (int i = 0; i < number_of_files / 2; i++) {
+        merge_pair(array, sequence[i].a, sequence[i].b);
+    }
+    free(files_to_merge);
+    free(sequence);
+    return arguments_taken;
+}
+
+
 // create block from TMP file - after merging
 struct block *create_block(const char *file, int number_of_iterations, char **pointers_1, char **pointers_2) {
     FILE *tmp = fopen(file, "r");
@@ -80,7 +127,7 @@ struct block *create_block(const char *file, int number_of_iterations, char **po
 
 void merge_pair(struct main_array *main_array, const char *a, const char *b) {
     const char *FILENAME = "tmp.txt";
-    printf("ok\n");
+
     FILE *file_1 = fopen(a, "r");
     FILE *file_2 = fopen(b, "r");
     FILE *tmp = fopen(FILENAME, "w");

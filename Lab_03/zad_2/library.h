@@ -5,9 +5,9 @@
 #ifndef UNTITLED_LIBRARY_H
 #define UNTITLED_LIBRARY_H
 
-#include <bits/types/FILE.h>
+#include <stdio.h>
 #include <sys/times.h>
-#include <stdlib.h>
+
 struct main_array {
     int number_of_blocks;
     struct block *array;
