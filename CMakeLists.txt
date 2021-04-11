@@ -22,6 +22,7 @@ add_executable(l2_z5b Lab_02/zad_5/zad_5_system.c)
 add_executable(l3_z1 Lab_03/zad_1/zad_1.c)
 add_executable(l3_z2 Lab_03/zad_2/zad_2.c)
 add_executable(l3_z3 Lab_03/zad_3/zad_3.c)
-
+add_executable(l4_z1 Lab_04/zad_1/zad_1.c)
+add_executable(l4_z2 Lab_04/zad_2/zad_2.c)
 target_link_libraries(l3_z2 library_03)
 target_link_libraries(main_lab1 library)
