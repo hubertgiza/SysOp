@@ -9,20 +9,19 @@
 
 void handle_child(int sig, siginfo_t *info, void *ucontext) {
     printf("Signal number %d\n", info->si_signo);
-    printf("Sending PID %d\n", info->si_pid);
-    // kod wyjscia procesu dziecka (sygnal SIGCHLD)
     raise(SIGSTOP);
-    printf("Child exit code %d\n", info->si_status);
+    printf("Exit code %d\n", info->si_status);
 }
 
 void handle_status(int sig, siginfo_t *info, void *ucontext) {
+    printf("I am handling a status\n");
     printf("Signal number %d\n", info->si_signo);
     printf("Sending PID %d\n", info->si_pid);
-    if (info->si_code == SI_USER) {
-        printf("Send by user\n");
-    } else {
-        printf("Send by kernel\n");
-    }
+}
+
+void handle_reset(int sig, siginfo_t *info, void *ucontext) {
+    printf("I am handling reset\n");
+    exit(42);
 }
 
 int main(int argc, char **argv) {
@@ -40,7 +39,7 @@ int main(int argc, char **argv) {
         act.sa_flags = SA_SIGINFO;
         act.sa_sigaction = handle_status;
         sigaction(SIGINT, &act, NULL);
-        pause();
+        raise(SIGINT);
     } else if (strcmp(argv[1], "child") == 0) {
         act.sa_flags = SA_NOCLDSTOP;
         act.sa_sigaction = handle_child;
@@ -49,7 +48,12 @@ int main(int argc, char **argv) {
         if (child_pid == 0) {
             raise(SIGCHLD);
         }
+        //    wait(NULL); //odkomentowac kiedy sie chce porownywac dzialanie z flaga albo bez
+    } else if (strcmp(argv[1], "reset") == 0) {
+        act.sa_flags = SA_RESETHAND;
+        act.sa_sigaction = handle_reset;
+        sigaction(SIGCHLD, &act, NULL);
+        raise(SIGCHLD);
+        raise(SIGCHLD);
     }
-    https://linux.die.net/man/2/waitpid
-    wait(NULL);
 }
