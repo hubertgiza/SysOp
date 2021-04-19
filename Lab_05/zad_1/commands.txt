@@ -1,0 +1,13 @@
+skladnik1 = echo 12345678 | cat
+skladnik2 = ls -l | wc -c
+skladnik3 = echo ok | cat
+skladnik4 = cat | wc -c
+skladnik5 = ls -l | grep zad_1.c
+skladnik6 = cat | cat
+
+skladnik1
+skladnik2
+skladnik3
+skladnik5
+skladnik1 | skladnik4
+skladnik5 | skladnik6 | skladnik4
