@@ -14,15 +14,18 @@
 #include <signal.h>
 #include <unistd.h>
 
-#define MAX_CLIENT_NUMBER 128
-#define MAX_LINE_SIZE 64
-
+#define MAX_CLIENT_NUMBER 38
+#define MAX_LINE_SIZE 128
 #define SERVER_ID 's'
 #define PERMISSIONS 0660
+
 enum operationType {
-    REGISTRATION = 1,
-    STOP = 2,
-    LIST = 3
+    STOP = 1,
+    DISCONNECT = 2,
+    REGISTRATION = 3,
+    LIST = 4,
+    CONNECT = 5,
+    MESSAGE = 6
 };
 
 

@@ -7,23 +7,39 @@
 #include <errno.h>
 #include "library.h"
 
-#define SERVER_ID 's'
-#define MAX_CLIENT_NUMBER 1024
-#define MAX_LINE_SIZE 512
 
 int clientQids[MAX_CLIENT_NUMBER];
 int clientStatus[MAX_CLIENT_NUMBER];
-int clientCounter = 0;
+int idCounter = 0;
+int activeClients = 0;
 
 key_t serverKey;
 int serverQid;
 
 void cleanUp() {
     msgctl(serverQid, IPC_RMID, (struct msqid_ds *) NULL);
+    printf("Server has gone offline\n");
 }
 
 void handleINT(int sig) {
-    printf("handling SIGINT\n");
+    int signals_send = 0;
+    for (int i = 0; i < idCounter; i++) {
+        if (clientStatus[i] != -1) {
+            struct msgBuffer queryBuffer;
+            struct msgBuffer responseBuffer;
+            queryBuffer.mtype = STOP;
+            strcpy(queryBuffer.text, "Server is shutting down\nYou will be disconnected\n\0");
+            printf("Send STOP to client: %d \n", i);
+            msgsnd(clientQids[i], &queryBuffer, MSGBUF_RAW_SIZE, 0);
+            msgrcv(serverQid, &responseBuffer, MSGBUF_RAW_SIZE, 0, 0);
+            if (responseBuffer.mtype == STOP) {
+                signals_send++;
+            }
+            if (signals_send == activeClients) {
+                break;
+            }
+        }
+    }
     exit(0);
 }
 
@@ -42,41 +58,69 @@ int initServer() {
         clientQids[i] = -1;
         clientStatus[i] = -1;
     }
+    printf("Server is online\n");
     return 0;
 }
 
 int handleREGISTERY(struct msgBuffer queryBuffer, struct msgBuffer *responseBuffer) {
-    clientQids[clientCounter] = msgget(queryBuffer.key, 0);
-    if (clientQids[clientCounter] == -1) {
+    clientQids[idCounter] = msgget(queryBuffer.key, 0);
+    if (clientQids[idCounter] == -1) {
         return -1;
     }
-    clientStatus[clientCounter] = 1;
+    clientStatus[idCounter] = 1;
     responseBuffer->mtype = REGISTRATION;
-    responseBuffer->id = clientCounter;
+    responseBuffer->id = idCounter;
     errorCode = msgsnd(msgget(queryBuffer.key, 0), responseBuffer, MSGBUF_RAW_SIZE, 0);
 
     if (errorCode == -1) {
         return -1;
     }
-    clientCounter++;
+    printf("Registered with ID:%d\n", idCounter);
+    idCounter++;
+    activeClients++;
     return 0;
 }
 
 int handleSTOP(struct msgBuffer queryBuffer) {
-    printf("handling stop\n");
-    if (msgctl(clientQids[queryBuffer.id], IPC_RMID, (struct msqid_ds *) NULL) == -1)
-        return -1;
     clientQids[queryBuffer.id] = -1;
-    clientCounter--;
+    clientStatus[queryBuffer.id] = -1;
+    activeClients--;
     return 0;
+}
+
+int handleCONNECT(struct msgBuffer queryBuffer) {
+    int client_1 = queryBuffer.id;
+    int client_2 = queryBuffer.key;
+    int errorCode1;
+    int errorCode2;
+    struct msgBuffer signalBuffer;
+    signalBuffer.mtype = CONNECT;
+    signalBuffer.id = clientQids[client_2];
+    strcpy(signalBuffer.text, "Server: You are now in chat!\n\0");
+    errorCode1 = msgsnd(clientQids[client_1], &signalBuffer, MSGBUF_RAW_SIZE, 0);
+    if (errorCode1 == -1) {
+        printf("%s\n", strerror(errno));
+    }
+    signalBuffer.id = clientQids[client_1];
+    errorCode2 = msgsnd(clientQids[client_2], &signalBuffer, MSGBUF_RAW_SIZE, 0);
+    if (errorCode2 == -1) {
+        printf("%s\n", strerror(errno));
+    }
+    if (errorCode1 != -1 && errorCode2 != -1) {
+        clientStatus[client_1] = 0;
+        clientStatus[client_2] = 0;
+        return 1;
+    } else {
+        return -1;
+    }
 }
 
 void handleLIST(struct msgBuffer queryBuffer) {
     printf("handling LIST\n");
     struct msgBuffer respond;
     int any_active_clients = 0;
-    for (int i = 0; i < clientCounter + 1; i++) {
-        if (clientStatus[i] != -1) {
+    for (int i = 0; i < idCounter; i++) {
+        if (clientStatus[i] == 1) {
             respond.mtype = LIST;
             respond.id = i;
             errorCode = msgsnd(clientQids[queryBuffer.id], &respond, MSGBUF_RAW_SIZE, 0);
@@ -99,17 +143,39 @@ void handleLIST(struct msgBuffer queryBuffer) {
     }
 }
 
+void handleDISCONNECT(struct msgBuffer queryBuffer) {
+    struct msgBuffer responseBuffer;
+    char line[MAX_LINE_SIZE] = {"You have been disconnected from chat\nYou are online on server again\n\0"};
+    responseBuffer.mtype = DISCONNECT;
+    strcpy(responseBuffer.text, line);
+    errorCode = msgsnd(clientQids[queryBuffer.id], &responseBuffer, MSGBUF_RAW_SIZE, 0);
+    if (errorCode == -1) {
+        printf("%s\n", strerror(errno));
+    } else {
+        clientStatus[queryBuffer.id] = 1;
+    }
+
+    errorCode = msgsnd(clientQids[queryBuffer.key], &responseBuffer, MSGBUF_RAW_SIZE, 0);
+    if (errorCode == -1) {
+        printf("%s\n", strerror(errno));
+    } else {
+        clientStatus[queryBuffer.key] = 1;
+    }
+
+}
+
 int main(int argc, char **argv) {
     errorCode = initServer();
     if (errorCode == -1) {
         printf("%s\n", strerror(errno));
         return -1;
     }
-    printf("%d\n", serverKey);
     while (1) {
+        struct timespec tim, tim2;
+        tim.tv_sec = 0;
+        tim.tv_nsec = 100000000;
         struct msgBuffer queryBuffer;
         struct msgBuffer responseBuffer;
-        int readyToExit = 0;
         errorCode = (int) msgrcv(serverQid, &queryBuffer, MSGBUF_RAW_SIZE, 0, IPC_NOWAIT);
         if (errorCode == -1) {
             if (errno != ENOMSG) {
@@ -117,16 +183,13 @@ int main(int argc, char **argv) {
                 return 1;
             }
         } else {
-            printf("Got query: %s - msg,\t %d - id,\t %lo - type\n",
-                   queryBuffer.text == NULL ? "null" : queryBuffer.text, queryBuffer.id, queryBuffer.mtype);
+            printf("Got query %d - id,\t %lo - type\n", queryBuffer.id, queryBuffer.mtype);
             switch (queryBuffer.mtype) {
                 case REGISTRATION:
                     errorCode = handleREGISTERY(queryBuffer, &responseBuffer);
                     if (errorCode == -1) {
                         printf("%s 2\n", strerror(errno));
                         return -1;
-                    } else {
-                        printf("registered with ID:%d\n", clientCounter - 1);
                     }
                     continue;
                 case STOP:
@@ -135,7 +198,14 @@ int main(int argc, char **argv) {
                 case LIST:
                     handleLIST(queryBuffer);
                     continue;
+                case CONNECT:
+                    handleCONNECT(queryBuffer);
+                    continue;
+                case DISCONNECT:
+                    handleDISCONNECT(queryBuffer);
+                    continue;
             }
         }
+        nanosleep(&tim, &tim2);
     }
 }
