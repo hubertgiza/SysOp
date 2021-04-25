@@ -109,7 +109,6 @@ int handleCONNECT(struct msgBuffer queryBuffer) {
 }
 
 void handleLIST(struct msgBuffer queryBuffer) {
-    printf("handling LIST\n");
     struct msgBuffer respond;
     int any_active_clients = 0;
     for (int i = 0; i < idCounter; i++) {

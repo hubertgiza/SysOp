@@ -25,6 +25,7 @@
 #define MAX_LINE_SIZE 512
 #define MAX_CLIENT_NUMBER 1024
 #define MAX_MSG_NUMBER 10
+#define PERMISSIONS 0660
 
 struct msgBuffer {
     long type;
@@ -40,6 +41,6 @@ enum operationType {
     CONNECT = 5,
     MESSAGE = 6
 };
-
+int MSGSIZE = sizeof (struct msgBuffer);
 int errorCode;
 #endif //SYSOP_COMMON_H

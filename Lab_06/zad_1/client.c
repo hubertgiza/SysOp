@@ -97,7 +97,6 @@ void handleDISCONNECT() {
     queryBuffer.mtype = DISCONNECT;
     queryBuffer.id = myId;
     queryBuffer.key = partnerID;
-    printf("To disconnect: %d %d\n", myId, partnerID);
     errorCode = msgsnd(serverQid, &queryBuffer, MSGBUF_RAW_SIZE, 0);
     if (errorCode == -1) {
         printf("%s\n", strerror(errno));
