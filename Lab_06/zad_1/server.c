@@ -1,10 +1,3 @@
-#include <sys/msg.h>
-#include <sys/ipc.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <string.h>
-#include <errno.h>
 #include "library.h"
 
 
