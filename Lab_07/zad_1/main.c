@@ -31,7 +31,7 @@ int m;
 struct timeval start_time;
 
 void clean_up() {
-    printf("\n*******************************************************************************************\n");
+    printf("*******************************************************************************************\n");
     printf("Cleaning up\n");
     printf("Killing workers\n");
     for (int i = 0; i < n; i++) {
@@ -103,7 +103,7 @@ void handleINTCHILD() {
 void initialize() {
     signal(SIGINT, handleINT);
     printf("Initializing semaphore\n");
-    semaphore_id = semget(ftok(getenv("HOME"), SEM_ID), 2, IPC_CREAT | PERMISSIONS);
+    semaphore_id = semget(ftok(getenv("HOME"), SEM_ID), 2, IPC_CREAT | IPC_EXCL | PERMISSIONS);
     if (semaphore_id == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
@@ -117,7 +117,7 @@ void initialize() {
         raise(SIGINT);
     }
     printf("Initializing kitchen's shared memory\n");
-    kitchen_memory_id = shmget(ftok(getenv("HOME"), KITCHEN_ID), furnace_size, IPC_CREAT | PERMISSIONS);
+    kitchen_memory_id = shmget(ftok(getenv("HOME"), KITCHEN_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
     if (kitchen_memory_id == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
@@ -128,7 +128,7 @@ void initialize() {
         raise(SIGINT);
     }
     printf("Initializing shipping's shared memory\n");
-    shipping_memory_id = shmget(ftok(getenv("HOME"), SHIPPING_ID), furnace_size, IPC_CREAT | PERMISSIONS);
+    shipping_memory_id = shmget(ftok(getenv("HOME"), SHIPPING_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
     if (shipping_memory_id == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
@@ -231,7 +231,7 @@ void courier_code() {
         pizzas_in_preparations = pizzas_in_furnace();
         semop(semaphore_id, &inc_furnace, 1);
         curr_time = get_curr_timestamp();
-        printf("PID: %d TIME: %ld:%d -> Dodalem pizze %d. Liczba pizz w piecu: %d", getpid(), curr_time.tv_sec,
+        printf("PID: %d TIME: %ld:%d -> Dodalem pizze %d. Liczba pizz w piecu: %d\n", getpid(), curr_time.tv_sec,
                curr_time.tv_usec, type, pizzas_in_preparations);
         sleep(4);
         semop(semaphore_id, &dec_furnace, 1);
@@ -248,10 +248,13 @@ void courier_code() {
         pizzas_to_ship = pizzas_on_stack();
         semop(semaphore_id, &inc_shipping, 1);
         curr_time = get_curr_timestamp();
-        printf("PID: %d TIME: %ld:%d -> Dodalem pizze %d. Liczba pizz w piecu: %d. Liczba pizz na stole: %d.", getpid(),
+        printf("PID: %d TIME: %ld:%d -> Wyjalem pizze %d. Liczba pizz w piecu: %d. Liczba pizz na stole: %d\n",
+               getpid(),
                curr_time.tv_sec,
                curr_time.tv_usec, type, pizzas_in_preparations, pizzas_to_ship);
+        sleep(1);
     }
+
 }
 
 int main(int argc, char **argv) {
@@ -276,45 +279,6 @@ int main(int argc, char **argv) {
             exit(0);
         }
     }
-    printf("Created cooks\n");
+    printf("Main has created cooks\n");
     wait(NULL);
-//    key_t key = ftok(getenv("HOME"), SEM_ID);
-//    int sem = semget(key, 2, IPC_CREAT | IPC_EXCL | PERMISSIONS);
-//    struct sembuf op;
-//    op.sem_num = 0;
-//    op.sem_op = -1;
-//    int err = semctl(sem, 0, GETVAL, NULL);
-//    printf("%d\n", err);
-//    if (fork() == 0) {
-//        struct sembuf op1;
-//        op1.sem_num = 0;
-//        op1.sem_op = 1;
-//        semop(sem, &op1, 1);
-//        exit(0);
-//    }
-//    err = semctl(sem, 0, GETVAL, NULL);
-//    printf("%d\n", err);
-//    printf("Before operation\n");
-//    semop(sem, &op, 1);
-//    printf("After operation\n");
-//    printf("%d\n", err);
-//    err = semctl(sem, 0, GETVAL, NULL);
-//    printf("%d\n", err);
-//    err = semctl(sem, 0, IPC_RMID, NULL);
-
-//    int mem_id = shmget(key, furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
-//    int *mem = shmat(mem_id, NULL, SHM_W);
-//    pid_t pid = fork();
-//    if (pid == 0) {
-//        mem[0] = 2137;
-//        exit(0);
-//    }
-//
-//    waitpid(pid, NULL, 0);
-//    printf("child done\n");
-//    printf("%d\n", mem[0]);
-//    int err = shmdt(mem);
-//    printf("%d\n", err);
-//    err = shmctl(mem_id, IPC_RMID, NULL);
-//    printf("%d\n", err);
 }
