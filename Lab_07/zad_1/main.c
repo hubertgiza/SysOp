@@ -1,6 +1,5 @@
 #include <sys/sem.h>
 #include <sys/ipc.h>
-#include <sys/types.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
@@ -9,7 +8,6 @@
 #include <sys/shm.h>
 #include <errno.h>
 #include <time.h>
-#include <stdlib.h>
 #include <sys/time.h>
 
 #define SEM_ID 's'
@@ -17,7 +15,7 @@
 #define SHIPPING_ID 'S'
 #define PERMISSIONS 0660
 
-const int pizza_slots = 100;
+const int pizza_slots = 5;
 int furnace_size = pizza_slots * sizeof(int);
 int semaphore_id;
 int kitchen_memory_id;
@@ -30,12 +28,22 @@ int n;
 int m;
 struct timeval start_time;
 
+void print_table() {
+    for (int i = 0; i < pizza_slots; i++) {
+        printf("%d ", shipping_memory[i]);
+    }
+    printf("\n");
+}
+
 void clean_up() {
     printf("*******************************************************************************************\n");
     printf("Cleaning up\n");
     printf("Killing workers\n");
     for (int i = 0; i < n; i++) {
         kill(cooks_pid[i], SIGINT);
+    }
+    for (int i = 0; i < m; i++) {
+        kill(couriers_pid[i], SIGINT);
     }
     sleep(1);
     printf("Closing semaphore\n");
@@ -160,10 +168,19 @@ int get_free_shipping_slot() {
     return -1;
 }
 
+int get_pizza_to_delivery() {
+    for (int i = 0; i < pizza_slots; i++) {
+        if (shipping_memory[i] != 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int pizzas_in_furnace() {
     int pizzas = 0;
     for (int i = 0; i < pizza_slots; i++) {
-        if (kitchen_memory[i] == 1) pizzas++;
+        if (kitchen_memory[i] != 0) pizzas++;
     }
     return pizzas;
 }
@@ -171,14 +188,11 @@ int pizzas_in_furnace() {
 int pizzas_on_stack() {
     int pizzas = 0;
     for (int i = 0; i < pizza_slots; i++) {
-        if (shipping_memory[i] == 1) pizzas++;
+        if (shipping_memory[i] != 0) pizzas++;
     }
     return pizzas;
 }
 
-void cook_code() {
-    while (1) { int x = 1; }
-}
 
 struct timeval get_curr_timestamp() {
     struct timeval tv;
@@ -193,7 +207,7 @@ struct timeval get_curr_timestamp() {
     return tv;
 }
 
-void courier_code() {
+void cook_code() {
     struct sembuf dec_furnace;
     dec_furnace.sem_num = 0;
     dec_furnace.sem_op = -1;
@@ -203,31 +217,32 @@ void courier_code() {
     inc_furnace.sem_op = 1;
 
     struct sembuf dec_shipping;
-    dec_shipping.sem_num = 0;
+    dec_shipping.sem_num = 1;
     dec_shipping.sem_op = -1;
 
     struct sembuf inc_shipping;
-    inc_shipping.sem_num = 0;
+    inc_shipping.sem_num = 1;
     inc_shipping.sem_op = 1;
 
     struct timeval curr_time;
-    int free_furnace_slot = -1;
-    int free_shipping_slot = -1;
-    int pizzas_in_preparations = 0;
-    int pizzas_to_ship = 0;
-
+    int free_furnace_slot;
+    int free_shipping_slot;
+    int pizzas_in_preparations;
+    int pizzas_to_ship;
+    int type;
     while (1) {
-        int type = rand() % 10;
         curr_time = get_curr_timestamp();
+        type = curr_time.tv_usec % 10;
         printf("PID: %d TIME: %ld:%d -> Przygotowuje pizze %d\n", getpid(), curr_time.tv_sec, curr_time.tv_usec, type);
         sleep(1);
+        free_furnace_slot = -1;
         while (free_furnace_slot == -1) {
             semop(semaphore_id, &dec_furnace, 1);
             free_furnace_slot = get_free_furnace_slot();
             if (free_furnace_slot != -1) break;
             semop(semaphore_id, &inc_furnace, 1);
         }
-        kitchen_memory[free_furnace_slot] = 1;
+        kitchen_memory[free_furnace_slot] = type;
         pizzas_in_preparations = pizzas_in_furnace();
         semop(semaphore_id, &inc_furnace, 1);
         curr_time = get_curr_timestamp();
@@ -238,23 +253,59 @@ void courier_code() {
         kitchen_memory[free_furnace_slot] = 0;
         pizzas_in_preparations = pizzas_in_furnace();
         semop(semaphore_id, &inc_furnace, 1);
+        free_shipping_slot = -1;
         while (free_shipping_slot == -1) {
             semop(semaphore_id, &dec_shipping, 1);
             free_shipping_slot = get_free_shipping_slot();
             if (free_shipping_slot != -1) break;
             semop(semaphore_id, &inc_shipping, 1);
         }
-        shipping_memory[free_shipping_slot] = 1;
+        shipping_memory[free_shipping_slot] = type;
         pizzas_to_ship = pizzas_on_stack();
         semop(semaphore_id, &inc_shipping, 1);
         curr_time = get_curr_timestamp();
-        printf("PID: %d TIME: %ld:%d -> Wyjalem pizze %d. Liczba pizz w piecu: %d. Liczba pizz na stole: %d\n",
+        printf("PID: %d TIME: %ld:%d -> Wyjmuje pizze %d. Liczba pizz w piecu: %d. Liczba pizz na stole: %d\n",
                getpid(),
                curr_time.tv_sec,
                curr_time.tv_usec, type, pizzas_in_preparations, pizzas_to_ship);
-        sleep(1);
     }
+}
 
+void courier_code() {
+    struct sembuf dec_shipping;
+    dec_shipping.sem_num = 1;
+    dec_shipping.sem_op = -1;
+
+    struct sembuf inc_shipping;
+    inc_shipping.sem_num = 1;
+    inc_shipping.sem_op = 1;
+
+    struct timeval curr_time;
+    int delivery_slot;
+    int pizzas_to_ship;
+    int type;
+    while (1) {
+        delivery_slot = -1;
+        while (delivery_slot == -1) {
+            semop(semaphore_id, &dec_shipping, 1);
+            delivery_slot = get_pizza_to_delivery();
+            if (delivery_slot != -1) break;
+            semop(semaphore_id, &inc_shipping, 1);
+        }
+        type = shipping_memory[delivery_slot];
+        shipping_memory[delivery_slot] = 0;
+        pizzas_to_ship = pizzas_on_stack();
+        semop(semaphore_id, &inc_shipping, 1);
+        curr_time = get_curr_timestamp();
+        printf("PID: %d TIME: %ld:%d -> Pobieram pizze %d. Liczba pizz na stole: %d\n",
+               getpid(),
+               curr_time.tv_sec,
+               curr_time.tv_usec, type, pizzas_to_ship);
+        sleep(4);
+        curr_time = get_curr_timestamp();
+        printf("PID: %d TIME: %ld:%d -> Dostarczylem pizze %d\n", getpid(), curr_time.tv_sec, curr_time.tv_usec, type);
+        sleep(4);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -275,10 +326,21 @@ int main(int argc, char **argv) {
             cooks_pid[i] = tmp_pid;
         } else {
             signal(SIGINT, handleINTCHILD);
-            courier_code();
+            cook_code();
             exit(0);
         }
     }
     printf("Main has created cooks\n");
+    for (int i = 0; i < m; i++) {
+        pid_t tmp_pid = fork();
+        if (tmp_pid != 0) {
+            couriers_pid[i] = tmp_pid;
+        } else {
+            signal(SIGINT, handleINTCHILD);
+            courier_code();
+            exit(0);
+        }
+    }
+    printf("Main has created couriers\n");
     wait(NULL);
 }
