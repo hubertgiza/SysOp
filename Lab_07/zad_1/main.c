@@ -28,6 +28,14 @@ int n;
 int m;
 struct timeval start_time;
 
+union semun {
+    int              val;
+    struct semid_ds *buf;
+    unsigned short  *array;
+    struct seminfo  *__buf;
+};
+
+
 void print_table() {
     for (int i = 0; i < pizza_slots; i++) {
         printf("%d ", shipping_memory[i]);
