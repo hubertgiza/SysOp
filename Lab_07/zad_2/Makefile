@@ -1,6 +1,6 @@
 main: main.c
 	make clear
-	gcc -Wall -o main main.c -lpthread
+	gcc -Wall -o main main.c -lpthread -lrt
 	make clear
 clear:
 	rm -f *.o *.a *.so *.d

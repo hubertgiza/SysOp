@@ -18,9 +18,9 @@
 const int pizza_slots = 5;
 int furnace_size = pizza_slots * sizeof(int);
 int semaphore_id;
-int kitchen_memory_id;
+int kitchen_shm_des;
 int *kitchen_memory;
-int shipping_memory_id;
+int shipping_shm_des;
 int *shipping_memory;
 int *cooks_pid;
 int *couriers_pid;
@@ -62,23 +62,23 @@ void clean_up() {
         }
     }
     printf("Closing kitchen's memory\n");
-    if (kitchen_memory_id != 0) {
+    if (kitchen_shm_des != 0) {
         int err = shmdt(kitchen_memory);
         if (err == -1) {
             printf("Could not disconnect kitchen's shared memory from process\n");
         }
-        err = shmctl(kitchen_memory_id, IPC_RMID, NULL);
+        err = shmctl(kitchen_shm_des, IPC_RMID, NULL);
         if (err == -1) {
             printf("Could not close the kitchen's shared memory\n");
         }
     }
     printf("Closing shipping's memory\n");
-    if (shipping_memory_id != 0) {
+    if (shipping_shm_des != 0) {
         int err = shmdt(shipping_memory);
         if (err == -1) {
             printf("Could not disconnect shipping's shared memory from process\n");
         }
-        err = shmctl(shipping_memory_id, IPC_RMID, NULL);
+        err = shmctl(shipping_shm_des, IPC_RMID, NULL);
         if (err == -1) {
             printf("Could not close the shipping's shared memory\n");
         }
@@ -94,13 +94,13 @@ void handleINT() {
 }
 
 void clean_up_child() {
-    if (kitchen_memory_id != 0) {
+    if (kitchen_shm_des != 0) {
         int err = shmdt(kitchen_memory);
         if (err == -1) {
             printf("Could not disconnect kitchen's shared memory from process\n");
         }
     }
-    if (shipping_memory_id != 0) {
+    if (shipping_shm_des != 0) {
         int err = shmdt(shipping_memory);
         if (err == -1) {
             printf("Could not disconnect shipping's shared memory from process\n");
@@ -133,23 +133,23 @@ void initialize() {
         raise(SIGINT);
     }
     printf("Initializing kitchen's shared memory\n");
-    kitchen_memory_id = shmget(ftok(getenv("HOME"), KITCHEN_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
-    if (kitchen_memory_id == -1) {
+    kitchen_shm_des = shmget(ftok(getenv("HOME"), KITCHEN_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
+    if (kitchen_shm_des == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
     }
-    kitchen_memory = shmat(kitchen_memory_id, NULL, SHM_W);
+    kitchen_memory = shmat(kitchen_shm_des, NULL, SHM_W);
     if (*kitchen_memory == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
     }
     printf("Initializing shipping's shared memory\n");
-    shipping_memory_id = shmget(ftok(getenv("HOME"), SHIPPING_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
-    if (shipping_memory_id == -1) {
+    shipping_shm_des = shmget(ftok(getenv("HOME"), SHIPPING_ID), furnace_size, IPC_CREAT | IPC_EXCL | PERMISSIONS);
+    if (shipping_shm_des == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
     }
-    shipping_memory = shmat(shipping_memory_id, NULL, SHM_W);
+    shipping_memory = shmat(shipping_shm_des, NULL, SHM_W);
     if (*shipping_memory == -1) {
         printf("%s\n", strerror(errno));
         raise(SIGINT);
