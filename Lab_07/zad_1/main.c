@@ -15,6 +15,7 @@
 #define SHIPPING_ID 'S'
 #define PERMISSIONS 0660
 
+
 const int pizza_slots = 5;
 int furnace_size = pizza_slots * sizeof(int);
 int semaphore_id;

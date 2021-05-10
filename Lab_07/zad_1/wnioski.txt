@@ -1,0 +1,4 @@
+Semafory działają w sposób taki, jaki powinny. W momencie, kiedy operacja dekrementacji miałaby dany semafor zmniejszyć do wartości ujemnej, proces jest blokowany do momentu, kiedy operacja ta będzie możliwa.
+W ten sposób można łatwo kontrolować dostęp programów do pamięci wspólnej i unikać sytuacji, w których wiele programów pisałoby i czytałoby z tego samego segmentu pamięci równolegle.
+Dla m,n <5 sprawa jest prosta, bo kucharze praktycznie cały czas zapełniają wolne miejsca albo ewentualnie czekają, aż kurierzy dostarczą pizze ze stołu.
+Dla m,n>5 niektórzy kucharze muszą się ustawić w kolejkę, aby móc dodawać pizze do pieca. Analogicznie dotyczy to kurierów, dla których stół jest za mały i muszą czekać.
