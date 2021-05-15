@@ -25,13 +25,23 @@ typedef struct PGMImage {
     unsigned int maxValue;
 } PGMImage;
 
+PGMImage *image;
+int mode;
+int step;
+
+
 void *threadFunc(void *arg) {
-    int *a = (int *) arg;
-    printf("Thread Function :: Start\n");
-    printf("%d\n", *a);
-    // Sleep for 2 seconds
-    sleep(5);
-    printf("Thread Function :: End\n");
+    int *my_id = (int *) arg;
+    printf("%d\n", *my_id);
+    if (mode == 0) {
+        for (int i = 0; i < image->height; i++) {
+            for (int j = *my_id; j < image->width; j += step) {
+                image->int_data[i][j] = 255 - image->int_data[i][j];
+            }
+        }
+    } else {
+        printf("here will be blocked code\n");
+    }
     return NULL;
 }
 
@@ -168,8 +178,6 @@ void printImageDetails(PGMImage *pgm, const char *filename) {
     fclose(pgmfile);
 }
 
-PGMImage *image;
-int mode;
 
 int main(int argc, char **argv) {
     int number_of_threads;
@@ -189,5 +197,15 @@ int main(int argc, char **argv) {
         image = malloc(sizeof(PGMImage));
         if (openPGM(image, input_name)) printImageDetails(image, input_name);
     }
-
+    pthread_t threads[number_of_threads];
+    int *ids = calloc(number_of_threads, sizeof(int));
+    step = number_of_threads;
+    for (int i = 0; i < number_of_threads; i++) {
+        ids[i] = i;
+        pthread_create(&threads[i], NULL, threadFunc, &ids[i]);
+    }
+    for (int i = 0; i < number_of_threads; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    savePGM(image, output_name);
 }
