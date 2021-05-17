@@ -2,19 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <ctype.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/sem.h>
-#include <sys/ipc.h>
-#include <signal.h>
-#include <sys/shm.h>
-#include <errno.h>
-#include <time.h>
 #include <sys/time.h>
-#include <sys/mman.h>
 
 
 typedef struct PGMImage {
@@ -27,23 +17,22 @@ typedef struct PGMImage {
 
 PGMImage *image;
 int mode;
-int step;
+int threads_number;
+int **output_array;
 
-
-void *threadFunc(void *arg) {
-    int *my_id = (int *) arg;
-    printf("%d\n", *my_id);
-    if (mode == 0) {
-        for (int i = 0; i < image->height; i++) {
-            for (int j = *my_id; j < image->width; j += step) {
-                image->int_data[i][j] = 255 - image->int_data[i][j];
-            }
-        }
+struct timeval get_curr_timestamp(struct timeval start_time) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    if ((tv.tv_usec - start_time.tv_usec) > 0) {
+        tv.tv_sec = tv.tv_sec - start_time.tv_sec;
+        tv.tv_usec = tv.tv_usec - start_time.tv_usec;
     } else {
-        printf("here will be blocked code\n");
+        tv.tv_usec = tv.tv_sec - start_time.tv_sec - 1;
+        tv.tv_usec = abs(tv.tv_usec - start_time.tv_usec);
     }
-    return NULL;
+    return tv;
 }
+
 
 void handleINT() {
     printf("Thread %lu: Received SIGINT signal\nThread is proceeding to exit\n", pthread_self());
@@ -85,7 +74,7 @@ int openPGM(PGMImage *pgm, const char *filename) {
     if (pgm->pgmType[1] == '2') {
         int **result = calloc(pgm->height, sizeof(int *));
         for (int i = 0; i < pgm->height; i++) {
-            result[i] = calloc(pgm->height, sizeof(int));
+            result[i] = calloc(pgm->width, sizeof(int));
         }
         fgetc(pgmfile);
         int i = 0;
@@ -101,7 +90,7 @@ int openPGM(PGMImage *pgm, const char *filename) {
                 if (isalnum(c_number[0])) {
                     result[i][j] = atoi(c_number);
                     j++;
-                    if (j == 512) {
+                    if (j == image->width) {
                         i++;
                         j = 0;
                     }
@@ -139,73 +128,77 @@ int savePGM(PGMImage *pgm, const char *filename) {
     return 1;
 }
 
-void printImageDetails(PGMImage *pgm, const char *filename) {
-    FILE *pgmfile = fopen(filename, "rb");
-
-    // Retreiving the file extension
-    char *ext = strrchr(filename, '.');
-
-    if (!ext)
-        printf("No extension found"
-               "in file %s",
-               filename);
-    else
-        printf("File format"
-               "    : %s\n",
-               ext + 1);
-
-    printf("PGM File type  : %s\n",
-           pgm->pgmType);
-
-    // Print type of PGM file, in ascii
-    // and binary format
-    if (!strcmp(pgm->pgmType, "P2"))
-        printf("PGM File Format:"
-               "ASCII\n");
-    else if (!strcmp(pgm->pgmType,
-                     "P5"))
-        printf("PGM File Format:"
-               " Binary\n");
-
-    printf("Width of img   : %d px\n",
-           pgm->width);
-    printf("Height of img  : %d px\n",
-           pgm->height);
-    printf("Max Gray value : %d\n",
-           pgm->maxValue);
-
-    // close file
-    fclose(pgmfile);
+void *threadFunc(void *arg) {
+    struct timeval my_start_time;
+    struct timeval my_curr_time;
+    gettimeofday(&my_start_time, NULL);
+    int *my_id = (int *) arg;
+    if (mode == 0) {
+        int my_values_start = 256 / threads_number * (*my_id);
+        int my_values_end = 256 / threads_number * (*my_id + 1);
+        for (int i = 0; i < image->height; i++) {
+            for (int j = 0; j < image->width; j++) {
+                if (image->int_data[i][j] >= my_values_start && image->int_data[i][j] < my_values_end)
+                    output_array[i][j] = 255 - image->int_data[i][j];
+            }
+        }
+    } else {
+        int my_block_start = (*my_id) * (image->width / threads_number);
+        int my_block_end = (*my_id + 1) * (image->width / threads_number);
+        for (int i = 0; i < image->height; i++) {
+            for (int j = my_block_start; j < my_block_end; j++) {
+                output_array[i][j] = 255 - image->int_data[i][j];
+            }
+        }
+    }
+    my_curr_time = get_curr_timestamp(my_start_time);
+    printf("Thread %d done in: %ld,%ld\n", *my_id, my_curr_time.tv_sec, my_curr_time.tv_usec);
+    pthread_exit((void *) 0);
 }
 
-
 int main(int argc, char **argv) {
-    int number_of_threads;
+    struct timeval start_time;
+    struct timeval curr_time;
     char *input_name;
     char *output_name;
+    gettimeofday(&start_time, NULL);
     if (argc != 5) {
         printf("Wrong number of arguments\nExpected 4, got %d!\n", argc - 1);
     } else {
-        number_of_threads = atoi(argv[1]);
-        if (strcmp("distributed", argv[2]) == 0) {
+        threads_number = atoi(argv[1]);
+        if (strcmp("number", argv[2]) == 0) {
             mode = 0;
-        } else {
+        } else if (strcmp("block", argv[2]) == 0) {
             mode = 1;
+        } else {
+            printf("Wrong mode type\n");
+            exit(0);
         }
         input_name = argv[3];
         output_name = argv[4];
         image = malloc(sizeof(PGMImage));
-        if (openPGM(image, input_name)) printImageDetails(image, input_name);
+        openPGM(image, input_name);
+        output_array = calloc(image->height, sizeof(int *));
+        for (int i = 0; i < image->height; i++) {
+            output_array[i] = calloc(image->width, sizeof(int));
+        }
     }
-    pthread_t threads[number_of_threads];
-    int *ids = calloc(number_of_threads, sizeof(int));
-    step = number_of_threads;
-    for (int i = 0; i < number_of_threads; i++) {
+    pthread_t threads[threads_number];
+    int *ids = calloc(threads_number, sizeof(int));
+    threads_number = threads_number;
+    for (int i = 0; i < threads_number; i++) {
         ids[i] = i;
         pthread_create(&threads[i], NULL, threadFunc, &ids[i]);
     }
-    for (int i = 0; i < number_of_threads; i++) {
-        pthread_join(threads[i], NULL);
+    for (int i = 0; i < threads_number; i++) {
+        int err;
+        pthread_join(threads[i], &err);
+        if (err != 0) {
+            printf("%d\n", err);
+        }
     }
+    image->int_data = output_array;
     savePGM(image, output_name);
+    curr_time = get_curr_timestamp(start_time);
+    printf("Main done in: %ld, %ld\n", curr_time.tv_sec, curr_time.tv_usec);
 }
