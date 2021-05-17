@@ -1,0 +1,2 @@
+Czasy pracy są bardzo krótkie. Praktycznie nie widać różnicy między wariantami, nawet przy zmianie liczby wątków.
+Sugeruje to zatem, że nie zawsze warto używać wątków do dzielenia pracy, bo ich obsługa jest sama w sobie czasochłonna dla procesu głównego.
