@@ -1,14 +1,11 @@
 #include <semaphore.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/sem.h>
-#include <sys/ipc.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/shm.h>
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>
