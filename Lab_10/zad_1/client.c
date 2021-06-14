@@ -9,15 +9,20 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-int server_socket;
-int is_client_O;
-char buffer[MAX_MESSAGE_LENGTH + 1];
-char *name;
 typedef enum {
     FREE,
     O,
     X
 } Field;
+
+typedef enum {
+    GAME_STARTING,
+    WAITING,
+    WAITING_FOR_MOVE,
+    MOVE_OPPONENT,
+    MOVE,
+    QUIT
+} State;
 
 typedef struct {
     int move;
@@ -33,59 +38,38 @@ int move(Board *board, int position) {
 }
 
 Field check_winner(Board *board) {
-    Field column = FREE;
     for (int x = 0; x < 3; x++) {
+        // column
         if (board->objects[x] == board->objects[x + 3] && board->objects[x + 3] == board->objects[x + 6] &&
             board->objects[x] != FREE) {
-            column = board->objects[x];
+            return board->objects[x];
         }
-
+        // row
+        if (board->objects[3 * x] == board->objects[3 * x + 1] &&
+            board->objects[3 * x + 1] == board->objects[3 * x + 2] && board->objects[3 * x] != FREE) {
+            return board->objects[3 * x];
+        }
     }
-    if (column != FREE)
-        return column;
 
-    Field row = FREE;
-    for (int y = 0; y < 3; y++) {
-        Field first = board->objects[3 * y];
-        Field second = board->objects[3 * y + 1];
-        Field third = board->objects[3 * y + 2];
-        if (first == second && first == third && first != FREE)
-            row = first;
+    if (board->objects[0] == board->objects[4] && board->objects[4] == board->objects[8] && board->objects[0] != FREE) {
+        return board->objects[0];
     }
-    if (row != FREE)
-        return row;
 
-    Field lower_diagonal = FREE;
-
-    Field first = board->objects[0];
-    Field second = board->objects[4];
-    Field third = board->objects[8];
-    if (first == second && first == third && first != FREE)
-        lower_diagonal = first;
-    if (lower_diagonal != FREE)
-        return lower_diagonal;
-    Field upper_diagonal = FREE;
-    first = board->objects[2];
-    second = board->objects[4];
-    third = board->objects[6];
-    if (first == second && first == third && first != FREE)
-        upper_diagonal = first;
-    return upper_diagonal;
+    if (board->objects[2] == board->objects[4] && board->objects[4] == board->objects[6] && board->objects[2] != FREE) {
+        return board->objects[2];
+    }
+    return FREE;
 }
 
-Board board;
-
-typedef enum {
-    GAME_STARTING,
-    WAITING,
-    WAITING_FOR_MOVE,
-    MOVE_OPPONENT,
-    MOVE,
-    QUIT
-} State;
-
-State state = GAME_STARTING;
 char *command, *arg;
+int server_socket;
+int is_client_O;
+Field player_symbol;
+char buffer[MAX_MESSAGE_LENGTH + 1];
+char *name;
+
+Board board;
+State state = GAME_STARTING;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -98,31 +82,22 @@ void quit() {
 }
 
 void check_game() {
-    int win = 0;
     Field winner = check_winner(&board);
     if (winner != FREE) {
-        if ((is_client_O && winner == O) || (!is_client_O && winner == X)) {
+        if (player_symbol == winner) {
             printf("WIN!\n");
         } else {
             printf("LOST!\n");
         }
-        win = 1;
+        state = QUIT;
+        return;
     }
-
-    int draw = 1;
     for (int i = 0; i < 9; i++) {
         if (board.objects[i] == FREE) {
-            draw = 0;
-            break;
+            printf("DRAW\n");
+            state = QUIT;
+            return;
         }
-    }
-
-    if (draw && !win) {
-        printf("DRAW\n");
-    }
-
-    if (win || draw) {
-        state = QUIT;
     }
 }
 
@@ -132,9 +107,8 @@ void split(char *reply) {
 }
 
 Board new_board() {
-    Board board = {1,
-                   {FREE}};
-    return board;
+    Board new_board = {};
+    return new_board;
 }
 
 void draw() {
@@ -156,7 +130,7 @@ void draw() {
     }
 }
 
-void play_game() {
+void *play_game() {
     while (1) {
         if (state == GAME_STARTING) {
             if (strcmp(arg, "name_taken") == 0) {
@@ -167,8 +141,8 @@ void play_game() {
                 state = WAITING;
             } else {
                 board = new_board();
-                is_client_O = arg[0] == 'O';
-                state = is_client_O ? MOVE : WAITING_FOR_MOVE;
+                player_symbol = (arg[0] == 'O') ? O : X;
+                state = (player_symbol == O) ? MOVE : WAITING_FOR_MOVE;
             }
         } else if (state == WAITING) {
             pthread_mutex_lock(&mutex);
@@ -178,11 +152,10 @@ void play_game() {
             pthread_mutex_unlock(&mutex);
 
             board = new_board();
-            is_client_O = arg[0] == 'O';
-            state = is_client_O ? MOVE : WAITING_FOR_MOVE;
+            player_symbol = (arg[0] == 'O') ? O : X;
+            state = (player_symbol == O) ? MOVE : WAITING_FOR_MOVE;
         } else if (state == WAITING_FOR_MOVE) {
             printf("Waiting for opponent move\n");
-
             pthread_mutex_lock(&mutex);
             while (state != MOVE_OPPONENT && state != QUIT) {
                 pthread_cond_wait(&cond, &mutex);
@@ -199,7 +172,7 @@ void play_game() {
             draw();
             int pos;
             do {
-                printf("Next move (%c): ", is_client_O ? 'O' : 'X');
+                printf("Next move (%c): ", (player_symbol == O) ? 'O' : 'X');
                 scanf("%d", &pos);
                 pos--;
             } while (!move(&board, pos));
@@ -233,7 +206,6 @@ void init_server_connection(char *type, char *destination) {
         connect(server_socket, (struct sockaddr *) &local_sockaddr, sizeof(struct sockaddr_un));
     } else {
         struct addrinfo *info;
-
         struct addrinfo hints;
         memset(&hints, 0, sizeof(struct addrinfo));
         hints.ai_family = AF_UNSPEC;
@@ -250,13 +222,12 @@ void listen_server() {
     while (1) {
         recv(server_socket, buffer, MAX_MESSAGE_LENGTH, 0);
         split(buffer);
-
         pthread_mutex_lock(&mutex);
         if (strcmp(command, "add") == 0) {
             state = GAME_STARTING;
             if (!game_thread_running) {
                 pthread_t t;
-                pthread_create(&t, NULL, (void *(*)(void *)) play_game, NULL);
+                pthread_create(&t, NULL, play_game, NULL);
                 game_thread_running = 1;
             }
         } else if (strcmp(command, "move") == 0) {
